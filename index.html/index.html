@@ -1,5 +1,69 @@
 <script>
-  console.log("abc");
+  let advancedOptions = document.getElementById("advancedContent");
+  
+  let clearAdvancedOptions = function() {
+  	advancedOptions.innerText = "Test!";
+    console.log(advancedOptions);
+  };
+  
+  clearAdvancedOptions();
+  
+  document.onload = function() {
+  	clearAdvancedOptions();
+  };
 </script>
 
 <h1>Test!</h1>
+
+<div style="display:flex; flex-direction:column; background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #ccf" id="level0options">
+	<b>Basic Sample Options</b>
+    
+    <br>
+    
+    <div style="display:flex; flex-direction:column;">
+    	Particle Mass (kg)
+    	<div style="display:flex; flex-direction:row;">
+   		 	<input id="particleMass" type="range" min="1" max="10" value="2">
+    		<input type="text">
+		</div>
+    </div>
+    
+    <br>
+
+	<div style="display:flex; flex-direction:column;">
+    	Cable Radius (mm)
+    	<div style="display:flex; flex-direction:row;">
+   		 	<input id="cableRadius" type="range" min="0.1" max="10" value="1">
+    		<input type="text">
+		</div>
+    </div>
+    
+    <br>
+	
+    <div style="display:flex; flex-direction:column;">
+    	Cable Length (m)
+    	<div style="display:flex; flex-direction:row;">
+   		 	<input id="cableLenth" type="range" min="0.2" max="10" value="1">
+    		<input type="text">
+		</div>
+    </div>
+    
+    <br>
+    
+    <div style="display:flex; flex-direction:column;">
+    	Strain Mode
+    	<div style="display:flex; flex-direction:row;">
+   		 	<select id="strainMode">
+    			<option value="Elastoplastic">Elastoplastic</option>
+    			<option value="Pure Elastic">Pure Elastic</option>
+    			<option value="Pure Plastic">Pure Plastic</option>
+    			<option value="Arbitrary">Arbritary</option>
+			</select>
+         </div>
+    </div>
+</div>
+
+<div style="display:flex; flex-direction:column; background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #ccf" id="level1options">
+	<b> Advanced Sample Options </b>
+    <div id="advancedContent"></div>
+</div>
