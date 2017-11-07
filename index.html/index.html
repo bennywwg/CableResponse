@@ -1,69 +1,383 @@
 <script>
-  let advancedOptions = document.getElementById("advancedContent");
-  
-  let clearAdvancedOptions = function() {
-  	advancedOptions.innerText = "Test!";
-    console.log(advancedOptions);
-  };
-  
-  clearAdvancedOptions();
-  
-  document.onload = function() {
-  	clearAdvancedOptions();
-  };
+    let advancedOptions;
+
+    //simulation stuff
+    let strainMode = "Elastoplastic";
+    let deltaL = 0.0;
+    let strain = 0.0;
+    let particleMass = 5.0;
+    let particleX = -0.9;
+    let particleY = -0;
+    let forceX = 0.0;
+    let forceY = 0.0;
+    let velocityX = 0.0;
+    let velocityY = 0.0;
+    let cableLength = 1;
+
+    let path = [];
+
+    //statistic stuff
+    let maxForce = 0.0;
+    let time = 0;
+
+    let formatForce = function(N) {
+        let force = Math.abs(N);
+        if(force < 0.001) {
+            return Math.round(N * 1000000) + "uN";
+        } else if(force < 1) {
+            return Math.round(N * 1000) + "mN";
+        } else if(force < 1000) {
+            return Math.round(N) + "N";
+        } else if(force < 1000000) {
+            return Math.round(N / 1000) + "kN";
+        }
+    };
+
+    let formatEnergy = function(J) {
+        let energy = Math.abs(J);
+        if(energy < 0.001) {
+            return Math.round(J * 1000000) + "uJ";
+        } else if(energy < 1) {
+            return Math.round(J * 1000) + "mJ";
+        } else if(energy < 1000) {
+            return Math.round(J) + "J";
+        } else if(energy < 1000000) {
+            return Math.round(J / 1000) + "kJ";
+        }
+    };
+
+    let updateAdvancedOptions = function() {
+        if(strainMode == "Elastoplastic") {
+            document.getElementById("elastoplastic").style.display = "initial";
+            document.getElementById("pureElastic").style.display = "none";
+            document.getElementById("arbitrary").style.display = "none";
+        } else if(strainMode == "Pure Elastic") {
+            document.getElementById("elastoplastic").style.display = "none";
+            document.getElementById("pureElastic").style.display = "initial";
+            document.getElementById("arbitrary").style.display = "none";
+        } else {
+            document.getElementById("elastoplastic").style.display = "none";
+            document.getElementById("pureElastic").style.display = "none";
+            document.getElementById("arbitrary").style.display = "initial";
+        }
+    };
+
+    let getForce = function(strain) {
+        return strain * 500000000;
+    };
+
+    let stepSim = function(deltaT) {
+        let oldForceX = forceX;
+        let oldForceY = forceY;
+
+        forceX = 0.0;
+        forceY = -9.81 * particleMass;
+
+        let dist = Math.sqrt(particleX * particleX + particleY * particleY);
+        if(dist > cableLength) {
+            deltaL = dist - cableLength;
+            strain = deltaL / cableLength;
+            let force = getForce(strain);
+
+            if(force > maxForce) maxForce = force;
+
+            forceX = -force * particleX / dist;
+            forceY = -force * particleY / dist;
+        } else {
+            forceX = 0;
+            forceY = 0;
+            deltaL = 0;
+            strain = 0;
+        }
+
+        velocityX += forceX / particleMass * deltaT;
+        velocityY += forceY / particleMass * deltaT - 9.81 * deltaT;
+
+
+        particleX += velocityX * deltaT;
+        particleY += velocityY * deltaT;
+
+        //stability
+        //velocityX *= 0.9999;
+        //velocityY *= 0.9999;
+
+        time += deltaT;
+
+
+        path.push({'x': particleX, 'y': particleY, 'f': Math.sqrt(forceX * forceX + forceY * forceY), 'fx': forceX, 'fy': forceY, 't': time});
+    };
+
+    let drawSim = function(forceInterval = 0.05) {
+        let ctx = document.getElementById("sim").getContext('2d');
+
+        ctx.clearRect(0,0,1000,1000);
+
+        let scale = 500.0;
+        let forceScale = 2.0;
+
+        //update and draw path
+
+        if(document.getElementById("drawPath").checked) {
+            let lastTime = 0;
+            for(let i = 1; i < path.length - 1; i++) {
+                ctx.strokeStyle = "#aaa";
+                ctx.beginPath();
+                ctx.moveTo(500 + path[i].x * scale, 4 - path[i].y * scale);
+                ctx.lineTo(500 + path[i + 1].x * scale, 4 - path[i + 1].y * scale);
+                ctx.stroke();
+
+
+                if(document.getElementById("drawForce").checked) {
+                    if(path[i - 1].f != 0 || path[i].f != 0 || path[i + 1].f != 0) {
+                        ctx.strokeStyle = "#faa";
+                        ctx.beginPath();
+                        ctx.lineTo(500 + path[i].x * scale + path[i].fx * forceScale, 4 - path[i].y * scale - path[i].fy * forceScale);
+                        ctx.lineTo(500 + path[i + 1].x * scale + path[i + 1].fx * forceScale, 4 - path[i + 1].y * scale - path[i + 1].fy * forceScale);
+                        ctx.stroke();
+
+                        if(path[i].f > path[i - 1].f && path[i].f > path[i + 1].f) {
+                            ctx.strokeStyle = "#f77";
+                            ctx.beginPath();
+                            ctx.moveTo(500 + path[i].x * scale, 4 - path[i].y * scale);
+                            ctx.lineTo(500 + path[i].x * scale + path[i].fx * forceScale, 4 - path[i].y * scale - path[i].fy * forceScale);
+                            ctx.stroke();
+                            ctx.fillText(formatForce(path[i].f), 500 + path[i].x * scale, 4 - path[i].y * scale);
+                        }
+                    }
+                }
+            }
+        }
+
+
+        //draw cable
+        ctx.strokeStyle = "#000";
+        ctx.beginPath();
+        ctx.moveTo(500, 4.0);
+        ctx.lineTo(500 + particleX * scale, 4.0 - particleY * scale);
+        ctx.stroke();
+
+        //draw particle
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(500 + particleX * scale, 4.0 - particleY * scale, 10, 0, 2 * 3.141597);
+        ctx.stroke();
+
+        //draw reaction force vector
+        ctx.strokeStyle = "#f00";
+        ctx.beginPath();
+        ctx.moveTo(500 + particleX * scale, 4.0 - particleY * scale);
+        ctx.lineTo(500 + particleX * scale + forceX * forceScale, 4.0 - particleY * scale - forceY * forceScale);
+        ctx.stroke();
+
+        updateInfo();
+    };
+
+    let updateInfo = function() {
+        document.getElementById("currentForceX").innerText = "X Force: " + formatForce(forceX);
+        document.getElementById("currentForceY").innerText = "Y Force: " + formatForce(forceY);
+        document.getElementById("maxForce").innerText = "Maximum Force: " + formatForce(maxForce);
+
+        let potentialEnergy = particleMass * particleY * 9.81;
+        let kineticEnergy = 0.5 * particleMass * (velocityX * velocityX + velocityY * velocityY);
+        let elasticEnergy = 0;
+
+        //integration
+        let segments = 100;
+        for(let i = 0; i < deltaL; i += (deltaL / segments)) elasticEnergy += getForce(i / cableLength);
+        elasticEnergy = elasticEnergy * (deltaL / segments);
+
+
+        let dissipatedEnergy = potentialEnergy + kineticEnergy + elasticEnergy;
+
+        document.getElementById("currentStrain").innerText = strain;
+        document.getElementById("potentialEnergy").innerText =
+            "Potential Energy: " + formatEnergy(potentialEnergy);
+        document.getElementById("kineticEnergy").innerText =
+            "Kinetic Energy: " + formatEnergy(kineticEnergy);
+        document.getElementById("elasticEnergy").innerText =
+            "Elastic Energy: " + formatEnergy(elasticEnergy);
+        document.getElementById("dissipatedEnergy").innerText =
+            "ΔEnergy: " + formatEnergy(dissipatedEnergy);
+
+        document.getElementById("time").innerText = "Time: " + Math.round(time * 1000) / 1000 + "s";
+    };
+
+
+    window.onload = function() {
+        advancedOptions = document.getElementById("advancedContent");
+
+        document.getElementById("strainMode").onchange = function() {
+            strainMode = document.getElementById("strainMode").value;
+            updateAdvancedOptions();
+
+
+        };
+
+        let func;
+        func = function() {
+            for(let i = 0; i < 100; i++) stepSim(0.00001);
+            drawSim();
+            setTimeout(func, 10);
+        };
+        func();
+    };
 </script>
 
-<h1>Test!</h1>
+<div style="display:flex; flex-direction:row; width: 100%">
+    <div id="lhs" style="margin: 5px;">
+        <div style="display:flex; flex-direction:column; background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #fff" id="level0options">
+            <b>Basic Sample Options</b>
 
-<div style="display:flex; flex-direction:column; background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #ccf" id="level0options">
-	<b>Basic Sample Options</b>
-    
-    <br>
-    
-    <div style="display:flex; flex-direction:column;">
-    	Particle Mass (kg)
-    	<div style="display:flex; flex-direction:row;">
-   		 	<input id="particleMass" type="range" min="1" max="10" value="2">
-    		<input type="text">
-		</div>
-    </div>
-    
-    <br>
+            <br>
 
-	<div style="display:flex; flex-direction:column;">
-    	Cable Radius (mm)
-    	<div style="display:flex; flex-direction:row;">
-   		 	<input id="cableRadius" type="range" min="0.1" max="10" value="1">
-    		<input type="text">
-		</div>
-    </div>
-    
-    <br>
-	
-    <div style="display:flex; flex-direction:column;">
-    	Cable Length (m)
-    	<div style="display:flex; flex-direction:row;">
-   		 	<input id="cableLenth" type="range" min="0.2" max="10" value="1">
-    		<input type="text">
-		</div>
-    </div>
-    
-    <br>
-    
-    <div style="display:flex; flex-direction:column;">
-    	Strain Mode
-    	<div style="display:flex; flex-direction:row;">
-   		 	<select id="strainMode">
-    			<option value="Elastoplastic">Elastoplastic</option>
-    			<option value="Pure Elastic">Pure Elastic</option>
-    			<option value="Pure Plastic">Pure Plastic</option>
-    			<option value="Arbitrary">Arbritary</option>
-			</select>
-         </div>
-    </div>
-</div>
+            <div style="display:flex; flex-direction:column;">
+                Particle Mass (kg)
+                <div style="display:flex; flex-direction:row;">
+                    <input id="particleMass" type="range" min="1" max="10" value="2">
+                    <input type="text">
+                </div>
+            </div>
 
-<div style="display:flex; flex-direction:column; background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #ccf" id="level1options">
-	<b> Advanced Sample Options </b>
-    <div id="advancedContent"></div>
+            <br>
+            <div style="display:flex; flex-direction:column;">
+                Cable Radius (mm)
+                <div style="display:flex; flex-direction:row;">
+                    <input id="cableRadius" type="range" min="0.1" max="10" value="1">
+                    <input type="text">
+                </div>
+            </div>
+
+            <br>
+
+            <div style="display:flex; flex-direction:column;">
+                Cable Length (m)
+                <div style="display:flex; flex-direction:row;">
+                    <input id="cableLenth" type="range" min="0.2" max="10" value="1">
+                    <input type="text">
+                </div>
+            </div>
+
+            <br>
+
+            <div style="display:flex; flex-direction:column;">
+                Strain Mode
+                <div style="display:flex; flex-direction:row;">
+                    <select id="strainMode">
+                        <option value="Elastoplastic">Elastoplastic</option>
+                        <option value="Pure Elastic">Pure Elastic</option>
+                        <option value="Arbitrary">Arbritary</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex; flex-direction:column; background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #fff" id="level1options">
+            <b> Advanced Sample Options </b>
+
+            <br>
+
+            <div id="elastoplastic">
+                <div style="display:flex; flex-direction:column;">
+                    Yield Strength (MPa)
+                    <div style="display:flex; flex-direction:row;">
+                        <input id="elastoplasticYieldStrength" type="range" min="0" max="2000" value="500">
+                        <input type="text">
+                    </div>
+                </div>
+
+                <br>
+
+                <div style="display:flex; flex-direction:column;">
+                    Ultimate Strength (MPa)
+                    <div style="display:flex; flex-direction:row;">
+                        <input id="elastoplasticUltimateStrength" type="range" min="0" max="2000" value="500">
+                        <input type="text">
+                    </div>
+                </div>
+
+                <br>
+
+                <div style="display:flex; flex-direction:column;">
+                    Modulus of Elasticity (GPa)
+                    <div style="display:flex; flex-direction:row;">
+                        <input id="elastoplasticModulus" type="range" min="0" max="2000" value="500">
+                        <input type="text">
+                    </div>
+                </div>
+            </div>
+            <div id="pureElastic" style="display:none;">
+                <div style="display:flex; flex-direction:column;">
+                    Ultimate Strength (MPa)
+                    <div style="display:flex; flex-direction:row;">
+                        <input id="elasticUltimateStrength" type="range" min="0" max="2000" value="500">
+                        <input type="text">
+                    </div>
+                </div>
+
+                <br>
+
+                <div style="display:flex; flex-direction:column;">
+                    Modulus of Elasticity (GPa)
+                    <div style="display:flex; flex-direction:row;">
+                        <input id="elasticModulus" type="range" min="0" max="2000" value="500">
+                        <input type="text">
+                    </div>
+                </div>
+
+                <br>
+
+                <div style="display:flex; flex-direction:column;">
+                    Modulus Mode
+                    <div style="display:flex; flex-direction:row;">
+                        <select id="elasticModulusMode">
+                            <option value="Linear">Linear</option>
+                            <option value="Cubic">Cubic</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div id="arbitrary" style="display:none;">
+                <div style="display:flex; flex-direction:column;">
+                    Strain (unitless) as a function of stress 'S' (MPa)
+                    <div style="display:flex; flex-direction:row;">
+                        <input type="text">
+                    </div>
+                </div>
+                <canvas style="border: 2px solid black; width: 100%; height: 200px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div id="rhs" style="display:flex; flex-direction: column; width: 100%; height: 100%;">
+        <div id="controlPanel" style="background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #fff">
+            <button id="resetSimulation">Reset Simulation</button>
+            <button id="playPauseSimulation" onclick="drawSim()">Run Simulation</button>
+            <button id="singleStep" onclick="stepSim(0.01)">Stem Simulation (1ms)</button>
+            <select id="simulationMode">
+                <option value="Real Time">Real Time</option>
+                <option value="Max Speed">Max Speed</option>
+            </select>
+            <input type="checkbox" id="drawPath">Draw Path</input>
+            <input type="checkbox" id="drawForce">Draw Force</input>
+        </div>
+
+        <canvas id="sim" width=1000 height=800 style="width: 100%; border: 2px solid black;"></canvas>
+
+        <div style="display: flex; flex-direction: row; justify-content: space-between;">
+            <div id="infoPanel" style="margin-right: 3em">
+                <b>Current Information</b>
+                <div id="currentForceX">X Force: 0 N</div>
+                <div id="currentForceY">Y Force: 0 N</div>
+                <div id="currentStrain">Strain: 0 E-6</div>
+                <div id="potentialEnergy">Potential Energy: 0 J</div>
+                <div id="kineticEnergy">Kinetic Energy: 0 J</div>
+                <div id="elasticEnergy">Elastic Energy: 0 J</div>
+            </div>
+            <div id="statisticPanel" style="margin-right: 3em">
+                <b>Statistics</b>
+                <div id="time">Time: 0s</div>
+                <div id="dissipatedEnergy">Total Dissipated Energy: 0 J</div>
+                <div id="safeyFactor">Safety Factor: 1</div>
+                <div id="maxForce">Maximum Force: 0 N</div>
+            </div>
+        </div>
+    </div>
 </div>
