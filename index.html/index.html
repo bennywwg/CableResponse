@@ -1,5 +1,6 @@
 <script>
     let advancedOptions;
+    let canvasEle;
 
     //simulation stuff
     let strainMode = "Elastoplastic";
@@ -12,7 +13,11 @@
     let forceY = 0.0;
     let velocityX = 0.0;
     let velocityY = 0.0;
+    let cableRadius = 1;
     let cableLength = 1;
+    let yieldStrength = 215;
+    let ultimateStrength = 505;
+    let E = 193;
 
     let path = [];
 
@@ -46,24 +51,8 @@
         }
     };
 
-    let updateAdvancedOptions = function() {
-        if(strainMode == "Elastoplastic") {
-            document.getElementById("elastoplastic").style.display = "initial";
-            document.getElementById("pureElastic").style.display = "none";
-            document.getElementById("arbitrary").style.display = "none";
-        } else if(strainMode == "Pure Elastic") {
-            document.getElementById("elastoplastic").style.display = "none";
-            document.getElementById("pureElastic").style.display = "initial";
-            document.getElementById("arbitrary").style.display = "none";
-        } else {
-            document.getElementById("elastoplastic").style.display = "none";
-            document.getElementById("pureElastic").style.display = "none";
-            document.getElementById("arbitrary").style.display = "initial";
-        }
-    };
-
     let getForce = function(strain) {
-        return strain * 5000;
+        return strain * E * 1000000000 * (cableRadius * cableRadius) * 0.000001;
     };
 
     let stepSim = function(deltaT) {
@@ -108,41 +97,71 @@
     };
 
     let drawSim = function(forceInterval = 0.05) {
-        let ctx = document.getElementById("sim").getContext('2d');
+        let ctx = canvasEle.getContext('2d');
 
-        ctx.clearRect(0,0,1000,1000);
 
-        let scale = 500.0;
-        let forceScale = 2.0;
+        let scale = canvasEle.height / 2;
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, canvasEle.width, canvasEle.height);
+        ctx.translate(canvasEle.width / 2, 10);
+        ctx.scale(700, 700);
+        ctx.lineWidth = 0.002;
 
-        //update and draw path
+        let forceScale = 0.01;
 
-        if(document.getElementById("drawPath").checked) {
-            let lastTime = 0;
-            for(let i = 1; i < path.length - 1; i++) {
+        //draw grid
+        ctx.strokeStyle = "#ccc";
+        for (let x = -100; x < 100; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x, -100);
+            ctx.lineTo(x, 100);
+            ctx.stroke();
+        }
+        for (let y = -100; y < 100; y++) {
+            ctx.beginPath();
+            ctx.moveTo(-100, y);
+            ctx.lineTo(100, y);
+            ctx.stroke();
+        }
+        
+        ctx.font = "0.02px Consolas";
+        for (let x = -100; x < 100; x++) {
+            for (let y = -100; y < 100; y++) {
+
+                ctx.fillText("x:" + x + "m", x + 0.001, y + 0.001);
+                ctx.fillText("y:" + y + "m", x + 0.001, y + 0.019);
+            }
+        }
+
+        let lastTime = 0;
+        for (let i = 1; i < path.length - 1; i++) {
+            if (document.getElementById("drawPath").checked) {
                 ctx.strokeStyle = "#aaa";
                 ctx.beginPath();
-                ctx.moveTo(500 + path[i].x * scale, 4 - path[i].y * scale);
-                ctx.lineTo(500 + path[i + 1].x * scale, 4 - path[i + 1].y * scale);
+                ctx.moveTo(path[i].x, -path[i].y);
+                ctx.lineTo(path[i + 1].x, -path[i + 1].y);
                 ctx.stroke();
+            }
 
 
-                if(document.getElementById("drawForce").checked) {
-                    if(path[i - 1].f != 0 || path[i].f != 0 || path[i + 1].f != 0) {
-                        ctx.strokeStyle = "#faa";
+            if (path[i - 1].f != 0 || path[i].f != 0 || path[i + 1].f != 0) {
+                if (document.getElementById("drawForce").checked) {
+                    ctx.strokeStyle = "#faa";
+                    ctx.beginPath();
+                    ctx.moveTo(path[i].x +     path[i].fx * forceScale,     -path[i].y -     path[i].fy * forceScale);
+                    ctx.lineTo(path[i + 1].x + path[i + 1].fx * forceScale, -path[i + 1].y - path[i + 1].fy * forceScale);
+                    ctx.stroke();
+                }
+
+                if (document.getElementById("drawPeakForce").checked) {
+                    if (path[i].f > path[i - 1].f && path[i].f > path[i + 1].f) {
+                        ctx.strokeStyle = "#f77";
                         ctx.beginPath();
-                        ctx.lineTo(500 + path[i].x * scale + path[i].fx * forceScale, 4 - path[i].y * scale - path[i].fy * forceScale);
-                        ctx.lineTo(500 + path[i + 1].x * scale + path[i + 1].fx * forceScale, 4 - path[i + 1].y * scale - path[i + 1].fy * forceScale);
+                        ctx.moveTo(path[i].x, -path[i].y);
+                        ctx.lineTo(path[i].x + path[i].fx * forceScale, -path[i].y - path[i].fy * forceScale);
                         ctx.stroke();
-
-                        if(path[i].f > path[i - 1].f && path[i].f > path[i + 1].f) {
-                            ctx.strokeStyle = "#f77";
-                            ctx.beginPath();
-                            ctx.moveTo(500 + path[i].x * scale, 4 - path[i].y * scale);
-                            ctx.lineTo(500 + path[i].x * scale + path[i].fx * forceScale, 4 - path[i].y * scale - path[i].fy * forceScale);
-                            ctx.stroke();
-                            ctx.fillText(formatForce(path[i].f), 500 + path[i].x * scale, 4 - path[i].y * scale);
-                        }
+                        ctx.font = "0.03px Consolas";
+                        ctx.fillText(formatForce(path[i].f), path[i].x, -path[i].y);
                     }
                 }
             }
@@ -152,21 +171,21 @@
         //draw cable
         ctx.strokeStyle = "#000";
         ctx.beginPath();
-        ctx.moveTo(500, 4.0);
-        ctx.lineTo(500 + particleX * scale, 4.0 - particleY * scale);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(particleX, -particleY);
         ctx.stroke();
 
         //draw particle
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 0.004;
         ctx.beginPath();
-        ctx.arc(500 + particleX * scale, 4.0 - particleY * scale, 10, 0, 2 * 3.141597);
+        ctx.arc(particleX, -particleY, 10, 0, 2 * 3.141597);
         ctx.stroke();
 
         //draw reaction force vector
         ctx.strokeStyle = "#f00";
         ctx.beginPath();
-        ctx.moveTo(500 + particleX * scale, 4.0 - particleY * scale);
-        ctx.lineTo(500 + particleX * scale + forceX * forceScale, 4.0 - particleY * scale - forceY * forceScale);
+        ctx.moveTo(particleX, -particleY);
+        ctx.lineTo(particleX + forceX * forceScale, -particleY - forceY * forceScale);
         ctx.stroke();
 
         updateInfo();
@@ -202,16 +221,70 @@
         document.getElementById("time").innerText = "Time: " + Math.round(time * 1000) / 1000 + "s";
     };
 
+    let showHide = function(panel) {
+        let ele = document.getElementById(panel);
+        let headerEle = null;
+        let toggleEle = null;
+        if (ele) {
+            for (let i = 0; i < ele.childNodes.length; i++) {
+                if (ele.childNodes[i].className == "panelHeader") {
+                    headerEle = ele.childNodes[i];
+                    break;
+                }
+            }
+            if (headerEle) {
+                for (let i = 0; i < headerEle.childNodes.length; i++) {
+                    if (headerEle.childNodes[i].className == "panelShowHide") {
+                        toggleEle = headerEle.childNodes[i];
+                        break;
+                    }
+                }
 
-    window.onload = function() {
+                if (toggleEle) {
+                    if (toggleEle.innerText == "Hide") {
+                        toggleEle.innerText = "Show";
+                        for (let i = 0; i < ele.childNodes.length; i++) {
+                            if(ele.childNodes[i].className != "panelHeader" && ele.childNodes[i].style) ele.childNodes[i].style.display = 'none';
+                        }
+                    } else {
+                        toggleEle.innerText = "Hide";
+                        for (let i = 0; i < ele.childNodes.length; i++) {
+                            if (ele.childNodes[i].className != "panelHeader" && ele.childNodes[i].style) ele.childNodes[i].style.display = 'initial';
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    let updateVariable = function (variableName, inputID) {
+        let ele = document.getElementById(inputID);
+        let value = parseFloat(ele.value);
+        let oldValue;
+        eval('oldValue = ' + variableName);
+        if (!isNaN(value)) {
+            eval(variableName + " = " + value);
+        } else {
+            ele.value = oldValue;
+        }
+    };
+
+    let resetSim = function () {
+        particleX = parseFloat(document.getElementById("X0").value);
+        particleY = parseFloat(document.getElementById("Y0").value);
+        velocityX = 0;
+        velocityY = 0;
+        path = [];
+    }
+
+    window.onload = function () {
+        document.getElementById("outerContainer").style.height = document.body.clientHeight + "px";
+
         advancedOptions = document.getElementById("advancedContent");
+        canvasEle = document.getElementById("sim");
 
-        document.getElementById("strainMode").onchange = function() {
-            strainMode = document.getElementById("strainMode").value;
-            updateAdvancedOptions();
-
-
-        };
+        canvasEle.width = document.body.clientWidth;
+        canvasEle.height = document.body.clientHeight;
 
         let func;
         func = function() {
@@ -223,161 +296,139 @@
     };
 </script>
 
-<div style="display:flex; flex-direction:row; width: 100%">
-    <div id="lhs" style="margin: 5px;">
-        <div style="display:flex; flex-direction:column; background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #fff" id="level0options">
+<style type="text/css">
+    body {
+        margin: 0;
+    }
+
+    .panel {
+        width: 11em;
+        display: flex;
+        flex-direction: column;
+        background-color: rgba(221, 221, 255, 0.60);
+        padding: 3px;
+        border: 1px solid #888;
+        margin: 4px;
+    }
+
+    .panelHeader {
+        display: flex;
+        flex-direction: row;
+        border-bottom: 2px solid #fff;
+        padding-bottom: 2px;
+        margin-bottom: 2px;
+    }
+
+    .panelShowHide {
+        margin-left: 1em;
+    }
+</style>
+
+<canvas id="sim" style="position: absolute; outline: 2px solid black; z-index: -1;"></canvas>
+<div id="outerContainer" style="overflow-y: scroll;">
+    <div class="panel">
+        <button id="resetSimulation" style="width: 100%;" onclick="resetSim()">Reset Simulation</button>
+        WARNING: The simulation may be unstable with certain parameters
+    </div>
+    <div id="level0options" class="panel">
+        <div class="panelHeader">
             <b>Basic Sample Options</b>
-
-            <br>
-
-            <div style="display:flex; flex-direction:column;">
-                Particle Mass (kg)
-                <div style="display:flex; flex-direction:row;">
-                    <input id="particleMass" type="range" min="1" max="10" value="2">
-                    <input type="text">
-                </div>
-            </div>
-
-            <br>
-            <div style="display:flex; flex-direction:column;">
-                Cable Radius (mm)
-                <div style="display:flex; flex-direction:row;">
-                    <input id="cableRadius" type="range" min="0.1" max="10" value="1">
-                    <input type="text">
-                </div>
-            </div>
-
-            <br>
-
-            <div style="display:flex; flex-direction:column;">
-                Cable Length (m)
-                <div style="display:flex; flex-direction:row;">
-                    <input id="cableLenth" type="range" min="0.2" max="10" value="1">
-                    <input type="text">
-                </div>
-            </div>
-
-            <br>
-
-            <div style="display:flex; flex-direction:column;">
-                Strain Mode
-                <div style="display:flex; flex-direction:row;">
-                    <select id="strainMode">
-                        <option value="Elastoplastic">Elastoplastic</option>
-                        <option value="Pure Elastic">Pure Elastic</option>
-                        <option value="Arbitrary">Arbritary</option>
-                    </select>
-                </div>
+            <button class="panelShowHide" onclick="showHide('level0options')">Hide</button>
+        </div>
+        <div style="display:flex; flex-direction:column;">
+            Particle Mass (kg)
+            <div style="display:flex; flex-direction:row;">
+                <input id="ParticleMass" type="text" onblur="updateVariable('particleMass', 'ParticleMass')" value="1">
             </div>
         </div>
-        <div style="display:flex; flex-direction:column; background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #fff" id="level1options">
-            <b> Advanced Sample Options </b>
-
-            <br>
-
-            <div id="elastoplastic">
-                <div style="display:flex; flex-direction:column;">
-                    Yield Strength (MPa)
-                    <div style="display:flex; flex-direction:row;">
-                        <input id="elastoplasticYieldStrength" type="range" min="0" max="2000" value="500">
-                        <input type="text">
-                    </div>
-                </div>
-
-                <br>
-
-                <div style="display:flex; flex-direction:column;">
-                    Ultimate Strength (MPa)
-                    <div style="display:flex; flex-direction:row;">
-                        <input id="elastoplasticUltimateStrength" type="range" min="0" max="2000" value="500">
-                        <input type="text">
-                    </div>
-                </div>
-
-                <br>
-
-                <div style="display:flex; flex-direction:column;">
-                    Modulus of Elasticity (GPa)
-                    <div style="display:flex; flex-direction:row;">
-                        <input id="elastoplasticModulus" type="range" min="0" max="2000" value="500">
-                        <input type="text">
-                    </div>
-                </div>
+        <br>
+        <div style="display:flex; flex-direction:column;">
+            Cable Radius (mm)
+            <div style="display:flex; flex-direction:row;">
+                <input id="CableRadius" type="text" onblur="updateVariable('cableRadius', 'CableRadius')" value="1">
             </div>
-            <div id="pureElastic" style="display:none;">
-                <div style="display:flex; flex-direction:column;">
-                    Ultimate Strength (MPa)
-                    <div style="display:flex; flex-direction:row;">
-                        <input id="elasticUltimateStrength" type="range" min="0" max="2000" value="500">
-                        <input type="text">
-                    </div>
-                </div>
-
-                <br>
-
-                <div style="display:flex; flex-direction:column;">
-                    Modulus of Elasticity (GPa)
-                    <div style="display:flex; flex-direction:row;">
-                        <input id="elasticModulus" type="range" min="0" max="2000" value="500">
-                        <input type="text">
-                    </div>
-                </div>
-
-                <br>
-
-                <div style="display:flex; flex-direction:column;">
-                    Modulus Mode
-                    <div style="display:flex; flex-direction:row;">
-                        <select id="elasticModulusMode">
-                            <option value="Linear">Linear</option>
-                            <option value="Cubic">Cubic</option>
-                        </select>
-                    </div>
-                </div>
+        </div>
+        <br>
+        <div style="display:flex; flex-direction:column;">
+            Cable Length (m)
+            <div style="display:flex; flex-direction:row;">
+                <input id="CableLength" type="text" onblur="updateVariable('cableLength', 'CableLength')" value="1">
             </div>
-            <div id="arbitrary" style="display:none;">
-                <div style="display:flex; flex-direction:column;">
-                    Strain (unitless) as a function of stress 'S' (MPa)
-                    <div style="display:flex; flex-direction:row;">
-                        <input type="text">
-                    </div>
-                </div>
-                <canvas style="border: 2px solid black; width: 100%; height: 200px;"></canvas>
+        </div>
+        <br>
+        <div style="display:flex; flex-direction:column;">
+            X(t=0) (m)
+            <div style="display:flex; flex-direction:row;">
+                <input id="X0" type="text" value="-0.9">
+            </div>
+        </div>
+        <br>
+        <div style="display:flex; flex-direction:column;">
+            Y(t=0) (m)
+            <div style="display:flex; flex-direction:row;">
+                <input id="Y0" type="text" value="0">
             </div>
         </div>
     </div>
-    <div id="rhs" style="display:flex; flex-direction: column; width: 100%; height: 100%;">
-        <div id="controlPanel" style="background-color:#ddd; padding:6px; border-radius: 4px; border: 2px solid #fff">
-            <button id="resetSimulation">Reset Simulation</button>
-            <button id="playPauseSimulation" onclick="drawSim()">Run Simulation</button>
-            <button id="singleStep" onclick="stepSim(0.01)">Stem Simulation (1ms)</button>
-            <select id="simulationMode">
-                <option value="Real Time">Real Time</option>
-                <option value="Max Speed">Max Speed</option>
-            </select>
-            <input type="checkbox" id="drawPath">Draw Path</input>
-            <input type="checkbox" id="drawForce">Draw Force</input>
+    <div id="level1options" class="panel">
+        <div class="panelHeader">
+            <b>Advanced Sample Options</b>
+            <button class="panelShowHide" onclick="showHide('level1options')">Hide</button>
         </div>
-
-        <canvas id="sim" width=1000 height=800 style="width: 100%; border: 2px solid black;"></canvas>
-
-        <div style="display: flex; flex-direction: row; justify-content: space-between;">
-            <div id="infoPanel" style="margin-right: 3em">
-                <b>Current Information</b>
-                <div id="currentForceX">X Force: 0 N</div>
-                <div id="currentForceY">Y Force: 0 N</div>
-                <div id="currentStrain">Strain: 0 E-6</div>
-                <div id="potentialEnergy">Potential Energy: 0 J</div>
-                <div id="kineticEnergy">Kinetic Energy: 0 J</div>
-                <div id="elasticEnergy">Elastic Energy: 0 J</div>
+        <br>
+        <div id="elastoplastic">
+            <div style="display:flex; flex-direction:column;">
+                Yield Strength (MPa)
+                <div style="display:flex; flex-direction:row;">
+                    <input id="YieldStrength" type="text" onblur="updateVariable('yieldStrength', 'YieldStrength')" value="215">
+                </div>
             </div>
-            <div id="statisticPanel" style="margin-right: 3em">
-                <b>Statistics</b>
-                <div id="time">Time: 0s</div>
-                <div id="dissipatedEnergy">Total Dissipated Energy: 0 J</div>
-                <div id="safeyFactor">Safety Factor: 1</div>
-                <div id="maxForce">Maximum Force: 0 N</div>
+            <br>
+            <div style="display:flex; flex-direction:column;">
+                Ultimate Strength (MPa)
+                <div style="display:flex; flex-direction:row;">
+                    <input id="UltimateStrength" type="text" onblur="updateVariable('ultimateStrength', 'UltimateStrength')" value="505">
+                </div>
+            </div>
+            <br>
+            <div style="display:flex; flex-direction:column;">
+                Modulus of Elasticity (GPa)
+                <div style="display:flex; flex-direction:row;">
+                    <input id="Modulus" type="text" onblur="updateVariable('E', 'Modulus')" value="193">
+                </div>
             </div>
         </div>
+    </div>
+    <div id="stats" class="panel">
+        <div class="panelHeader">
+            <b>Statistics And Info</b>
+            <button class="panelShowHide" onclick="showHide('stats')">Hide</button>
+        </div>
+        <div id="currentForceX">X Force: 0 N</div>
+        <div id="currentForceY">Y Force: 0 N</div>
+        <div id="currentStrain">Strain: 0 E-6</div>
+        <div id="potentialEnergy">Potential Energy: 0 J</div>
+        <div id="kineticEnergy">Kinetic Energy: 0 J</div>
+        <div id="elasticEnergy">Elastic Energy: 0 J</div>
+        <b>Statistics</b>
+        <div id="time">Time: 0s</div>
+        <div id="dissipatedEnergy">Total Dissipated Energy: 0 J</div>
+        <div id="safeyFactor">Safety Factor: 1</div>
+        <div id="maxForce">Maximum Force: 0 N</div>
+    </div>
+    <div id="simOptions" class="panel">
+        <div class="panelHeader">
+            <b>Simulation Settings</b>
+            <button class="panelShowHide" onclick="showHide('simOptions')">Hide</button>
+        </div>
+        <button id="playPauseSimulation" onclick="drawSim()">Run Simulation</button>
+        <button id="singleStep" onclick="stepSim(0.01)">Stem Simulation (1ms)</button>
+        <select id="simulationMode">
+            <option value="Real Time">Real Time</option>
+            <option value="Max Speed">Max Speed</option>
+        </select>
+        <input type="checkbox" id="drawPath" checked="checked">Draw Path
+        <input type="checkbox" id="drawForce" checked="checked">Draw Force
+        <input type="checkbox" id="drawPeakForce" checked="checked">Draw Peak Force
     </div>
 </div>
