@@ -157,6 +157,10 @@ cableApp.controller('CableController', ['$scope', function($scope){
 	};
 	
 	$scope.stepSim = function(deltaT) {
+		if($scope.cableLength <= 0 || isNaN($scope.cableLength)) return;
+		if($scope.particleMass <= 0 || isNaN($scope.particleMass)) return;
+		if($scope.cableRadius <= 0 || isNaN($scope.cableRadius)) return;
+		
 		let oldForceX = $scope.forceX;
 		let oldForceY = $scope.forceY;
 

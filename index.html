@@ -22,7 +22,7 @@
 				<div style="display:flex; flex-direction:column;">
 					Particle Mass
 					<div style="display:flex; flex-direction:row;">
-						<input type="number" step=any 1ng-model="particleMass">
+						<input type="number" step=any ng-model="particleMass">
 					</div>
 				</div>
 				<br>
@@ -36,7 +36,7 @@
 				<div style="display:flex; flex-direction:column;">
 					Cable Length
 					<div style="display:flex; flex-direction:row;">
-						<input type="number" step=any ng-model="cableLength">
+						<input type="number" step=any min=0.001 ng-model="cableLength">
 					</div>
 				</div>
 				<br>
