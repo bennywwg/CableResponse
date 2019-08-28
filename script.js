@@ -93,12 +93,19 @@ cableApp.controller('CableController', ['$scope', function($scope){
 			ctx.stroke();
 		}
 		
+		// for some reason normal string drawing does not work
+		let drawStr = function(str, x, y, spacing) {
+			for(let i = 0; i < str.length; i++) {
+				ctx.fillText(str[i], x + i * spacing, y);
+			}
+		};
+		
 		ctx.font = "0.02px Consolas";
 		for (let x = -10; x < 10; x++) {
 			for (let y = -10; y < 10; y++) {
-
-				ctx.fillText("x:" + x + "m", x + 0.001, y + 0.001);
-				ctx.fillText("y:" + y + "m", x + 0.001, y + 0.019);
+				//ctx.fillText("x", x + 0.001, y + 0.001);
+				drawStr('x: ' + x, x + 0.001, y + 0.001, 0.01);
+				drawStr('y: ' + -y, x + 0.001, y + 0.019, 0.01);
 			}
 		}
 
@@ -128,7 +135,7 @@ cableApp.controller('CableController', ['$scope', function($scope){
 						ctx.lineTo($scope.path[i].x + $scope.path[i].fx * forceScale, -$scope.path[i].y - $scope.path[i].fy * forceScale);
 						ctx.stroke();
 						ctx.font = "0.03px Consolas";
-						ctx.fillText(formatForce($scope.path[i].f), $scope.path[i].x, -$scope.path[i].y);
+						drawStr(formatForce($scope.path[i].f), $scope.path[i].x, -$scope.path[i].y, 0.0165);
 					}
 				}
 			}
