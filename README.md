@@ -2,6 +2,9 @@ This is a simple simulation program written in HTML and Javascript; It was done 
 
 Go to https://bennywwg.github.io/CableResponse/ to see the result.
 
+App in progress:
+![usage](https://raw.githubusercontent.com/bennywwg/CableResponse/master/media.png "App Usage")
+
 Update 8/27/2019:
 * Converted most display code to Angular.js
 * Separated files
