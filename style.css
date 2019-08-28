@@ -1,0 +1,25 @@
+body {
+	margin: 0;
+}
+
+.panel {
+	width: 11em;
+	display: flex;
+	flex-direction: column;
+	background-color: rgba(221, 221, 255, 0.60);
+	padding: 3px;
+	border: 1px solid #888;
+	margin: 4px;
+}
+
+.panelHeader {
+	display: flex;
+	flex-direction: row;
+	border-bottom: 2px solid #fff;
+	padding-bottom: 2px;
+	margin-bottom: 2px;
+}
+
+.panelShowHide {
+	margin-left: 1em;
+}

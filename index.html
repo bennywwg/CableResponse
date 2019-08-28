@@ -1,0 +1,113 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<script src="angular.min.js"></script>
+		<script src="script.js"></script>
+		<link rel="stylesheet" type="text/css" href="style.css">
+	</head>
+<body ng-app="cableApp">
+	<div ng-controller="CableController">
+		<canvas id="sim" style="position: absolute; outline: 2px solid black; z-index: -1;"></canvas>
+		<div id="outerContainer" style="overflow-y: scroll;">
+			<div class="panel">
+				<button style="width: 100%;" ng-click="resetSim()">Reset Simulation</button>
+				WARNING: The simulation may be unstable with certain parameters <br>
+				All values are in unscaled SI units
+			</div>
+			<div id="level0options" class="panel">
+				<div class="panelHeader">
+					<b>Basic Sample Options</b>
+					<button class="panelShowHide" onclick="showHide('level0options')">Hide</button>
+				</div>
+				<div style="display:flex; flex-direction:column;">
+					Particle Mass
+					<div style="display:flex; flex-direction:row;">
+						<input type="number" step=any 1ng-model="particleMass">
+					</div>
+				</div>
+				<br>
+				<div style="display:flex; flex-direction:column;">
+					Cable Radius
+					<div style="display:flex; flex-direction:row;">
+						<input type="number" step=any ng-model="cableRadius">
+					</div>
+				</div>
+				<br>
+				<div style="display:flex; flex-direction:column;">
+					Cable Length
+					<div style="display:flex; flex-direction:row;">
+						<input type="number" step=any ng-model="cableLength">
+					</div>
+				</div>
+				<br>
+				<div style="display:flex; flex-direction:column;">
+					X(t=0)
+					<div style="display:flex; flex-direction:row;">
+						<input type="number" step=any ng-model="x0">
+					</div>
+				</div>
+				<br>
+				<div style="display:flex; flex-direction:column;">
+					Y(t=0)
+					<div style="display:flex; flex-direction:row;">
+						<input type="number" step=any ng-model="y0">
+					</div>
+				</div>
+			</div>
+			<div id="level1options" class="panel">
+				<div class="panelHeader">
+					<b>Advanced Sample Options</b>
+					<button class="panelShowHide" onclick="showHide('level1options')">Hide</button>
+				</div>
+				<br>
+				<div id="elastoplastic">
+					<div style="display:flex; flex-direction:column;">
+						Yield Strength
+						<div style="display:flex; flex-direction:row;">
+							<input type="number" step=any value="1" ng-model="yieldStrength">
+						</div>
+					</div>
+					<br>
+					<div style="display:flex; flex-direction:column;">
+						Ultimate Strength
+						<div style="display:flex; flex-direction:row;">
+							<input type="number" step=any value="1" ng-model="ultimateStrength">
+						</div>
+					</div>
+					<br>
+					<div style="display:flex; flex-direction:column;">
+						Modulus of Elasticity
+						<div style="display:flex; flex-direction:row;">
+							<input type="number" step=any value="1" ng-model="E">
+						</div>
+					</div>
+				</div>
+			</div>
+			<div id="stats" class="panel">
+				<div class="panelHeader">
+					<b>Statistics And Info</b>
+					<button class="panelShowHide" onclick="showHide('stats')">Hide</button>
+				</div>
+				<div >X Force: {{forceXFormatted}}</div>
+				<div >Y Force: {{forceYFormatted}}</div>
+				<div >Strain: {{strainFormatted}}</div>
+				<div >Potential Energy: {{potentialEnergyFormatted}}</div>
+				<div >Kinetic Energy: {{kineticEnergyFormatted}}</div>
+				<div >Elastic Energy: {{elasticEnergyFormatted}}</div>
+				<b>Statistics</b>
+				<div id="time">Time: {{timeFormatted}}</div>
+				<div id="maxForce">Maximum Force: {{maxForce}}</div>
+			</div>
+			<div id="simOptions" class="panel">
+				<div class="panelHeader">
+					<b>Simulation Settings</b>
+					<button class="panelShowHide" onclick="showHide('simOptions')">Hide</button>
+				</div>
+				<input type="checkbox" ng-model="drawPath"> <div> Draw Path </div>
+				<input type="checkbox" ng-model="drawForce"> <div> Draw Force </div>
+				<input type="checkbox" ng-model="drawPeakForce"> <div> Draw Peak Force </div>
+			</div>
+		</div>
+	</div>
+	</body>
+</html>
