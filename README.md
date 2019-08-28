@@ -2,4 +2,9 @@ This is a simple simulation program written in HTML and Javascript; It was done 
 
 This project is not as polished as I would like it to be but it was enough to pass the class. It's not that important to me anymore because I'm no longer an engineering student, but I thought I'd keep it around for fun.
 
-Go to https://bennywwg.github.io/CableResponse/index.html/ to see the result.
+Go to https://bennywwg.github.io/CableResponse/ to see the result.
+
+Update 8/27/2019:
+* Converted most display code to Angular.js
+* Separated files
+* Cleaned up some logic
